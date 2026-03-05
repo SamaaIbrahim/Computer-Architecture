@@ -27,13 +27,10 @@ BEGIN
 	BEGIN
 		if(reg_write = '1' AND falling_edge(clk)) then
 			reg(to_integer(unsigned(write_reg))) <= write_data;
-		elsif (rising_edge(clk)) THEN
-            temp1 <= reg(to_integer(unsigned(read_reg1)));
-            temp2 <= reg(to_integer(unsigned(read_reg2)));
         end if;
 	END PROCESS;
     
-    read_data1 <= temp1;
-    read_data2 <= temp2;
+    read_data1 <= reg(to_integer(unsigned(read_reg1)));
+    read_data2 <= reg(to_integer(unsigned(read_reg2)));
 
 END reg_behavior;
