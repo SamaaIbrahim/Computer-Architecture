@@ -26,48 +26,71 @@ signal write_data: std_logic_vector(31 downto 0) := (others => '0');
 signal read_data1, read_data2: std_logic_vector(31 downto 0) := (others => '0');
 
 begin
-	reg_test : register_file port map(clk, reg_write, read_reg1, read_reg2, write_reg, write_data, read_data1, read_data2);
-	process
-	begin
-		reg_write <= '1';
-        write_reg <= "00000";
-        read_reg1 <= "00000";
-        read_reg2 <= "00001";
-		write_data <= x"FFFFFFFF";
-		wait for 1 ns;
-
-        assert read_data1 = x"FFFFFFFF" report "Read data 1 is incorrect";
-        assert read_data2 = x"00000000" report "Read data 2 is incorrect";
-		
-        write_reg <= "00011";
-        read_reg1 <= "00000";
-        read_reg2 <= "00011";
-        write_data <= x"1FA11111";
-		wait for 1 ns;
-        
-        assert read_data1 = x"FFFFFFFF" report "Read data 1 is incorrect";
-        assert read_data2 = x"1FA11111" report "Read data 2 is incorrect";
-
-        reg_write <= '0';
-        write_reg <= "11111";
-        read_reg1 <= "00011";
-        read_reg2 <= "11111";
-		write_data <= x"FFFFFFFF";
-        wait for 1 ns;
-        
-        assert read_data1 = x"1FA11111" report "Read data 1 is incorrect";
-        assert read_data2 = x"00000000" report "Read data 2 is incorrect";
-        
-		wait;
-	end process;
-
-	process
+	reg_test : register_file port map(
+        clk, 
+        reg_write, 
+        read_reg1, 
+        read_reg2, 
+        write_reg, 
+        write_data, 
+        read_data1, 
+        read_data2
+    );
+	
+    process
 	begin
 		while true loop
 			clk <= '1';
-			wait for 0.5 ns;
+			wait for 100 ps;
 			clk <= '0';
-			wait for 0.5 ns;
+			wait for 100 ps;
 		end loop;
 	end process;
+    
+    process
+    begin
+        reg_write <= '1';
+
+        -- CASE1: Write R1, read R1 and R0
+        write_reg <= "00001";
+        write_data <= x"11111111";
+        read_reg1 <= "00001";
+        read_reg2 <= "00000";
+        wait for 200 ps;
+        assert read_data1 = x"11111111" report "CASE1 failed: R1 read-after-write incorrect";
+        assert read_data2 = x"00000000" report "CASE1 failed: R0 must be zero";
+
+        -- CASE2: Write R2, read R2 and R1
+        write_reg <= "00010";
+        write_data <= x"22222222";
+        read_reg1 <= "00010";
+        read_reg2 <= "00001";
+        wait for 200 ps;
+        assert read_data1 = x"22222222" report "CASE2 failed: R2 read-after-write incorrect";
+        assert read_data2 = x"11111111" report "CASE2 failed: R1 should remain previous value";
+
+    	-- Writing is disabled
+		reg_write <= '0';
+
+        -- CASE3: attempt write R3 (ignored)
+        write_reg <= "00011";
+        write_data <= x"33333333";
+        read_reg1 <= "00011";
+        read_reg2 <= "00010";
+        wait for 200 ps;
+        assert read_data1 = x"00000000" report "CASE3 failed: R3 must not change";
+        assert read_data2 = x"22222222" report "CASE3 failed: R2 must remain unchanged";
+
+        -- CASE4: reg_write = 0, attempt write R1 (ignored)
+        write_reg <= "00001";
+        write_data <= x"44444444";
+        read_reg1 <= "00001";
+        read_reg2 <= "00010";
+        wait for 200 ps;
+        assert read_data1 = x"11111111" report "CASE4 failed: R1 must remain unchanged";
+        assert read_data2 = x"22222222" report "CASE4 failed: R2 must remain unchanged";
+
+        wait;
+    end process;
+
 end behavior;
